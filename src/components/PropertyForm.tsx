@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,23 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Property, PropertyStatus, PropertyType } from '@/utils/types';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import { Upload, Image } from 'lucide-react';
 
 interface PropertyFormProps {
-  onSubmit: (property: Partial<Property>, imageFile?: File) => void;
+  onSubmit: (property: Partial<Property>) => void;
   property?: Property;
   onCancel?: () => void;
-  isSubmitting?: boolean;
 }
 
 const PropertyForm: React.FC<PropertyFormProps> = ({ 
   onSubmit, 
   property,
-  onCancel,
-  isSubmitting = false
+  onCancel
 }) => {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filtrer les statuts pour enlever "À VENDRE"
   const filteredStatuses = Object.values(PropertyStatus).filter(status => 
@@ -47,9 +43,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       imageUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2940&q=80',
     }
   );
-
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(formData.imageUrl || null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -74,22 +67,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -103,7 +80,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       return;
     }
     
-    onSubmit(formData, imageFile || undefined);
+    onSubmit(formData);
   };
 
   return (
@@ -115,44 +92,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
       transition={{ duration: 0.3 }}
     >
       <div className="space-y-4">
-        {/* Image Upload Section */}
-        <div className="mb-6">
-          <Label className="mb-2 block">Image du bien</Label>
-          <div 
-            className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={triggerFileInput}
-          >
-            {imagePreview ? (
-              <div className="relative w-full">
-                <img 
-                  src={imagePreview} 
-                  alt="Preview" 
-                  className="mx-auto max-h-64 rounded-md object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-md">
-                  <p className="text-white flex items-center">
-                    <Upload className="mr-2 h-5 w-5" />
-                    Changer l'image
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="py-8 flex flex-col items-center">
-                <Image className="h-12 w-12 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500">Cliquez pour ajouter une image</p>
-                <p className="text-xs text-gray-400 mt-1">PNG, JPG, GIF jusqu'à 10MB</p>
-              </div>
-            )}
-            <input 
-              ref={fileInputRef}
-              type="file" 
-              className="hidden" 
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-          </div>
-        </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nom du bien<span className="text-destructive">*</span></Label>
@@ -303,6 +242,17 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
             rows={4}
           />
         </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="imageUrl">URL de l'image</Label>
+          <Input
+            id="imageUrl"
+            name="imageUrl"
+            value={formData.imageUrl}
+            onChange={handleInputChange}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
       </div>
       
       <div className="flex justify-end space-x-4">
@@ -311,11 +261,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
             Annuler
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting 
-            ? "Enregistrement en cours..." 
-            : property ? 'Mettre à jour' : 'Ajouter le bien'
-          }
+        <Button type="submit">
+          {property ? 'Mettre à jour' : 'Ajouter le bien'}
         </Button>
       </div>
     </motion.form>
