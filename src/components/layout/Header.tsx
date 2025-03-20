@@ -1,15 +1,22 @@
 
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bell, Search, UserRound } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Bell, Search, UserRound, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/context/AuthContext';
+import { logoutUser } from '@/services/auth.service';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { currentUser, userData, userRole } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -17,6 +24,23 @@ const Header: React.FC = () => {
 
   const closeMenu = () => {
     setIsMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès"
+      });
+      navigate('/login');
+    } catch (error) {
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur est survenue lors de la déconnexion",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -32,21 +56,49 @@ const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-          </Button>
-          {isMobile ? (
-            <Button variant="ghost" size="icon" onClick={toggleMenu}>
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+          {currentUser ? (
+            <>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+              </Button>
+              
+              {isMobile ? (
+                <Button variant="ghost" size="icon" onClick={toggleMenu}>
+                  {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </Button>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="icon">
+                    <Search className="h-5 w-5" />
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <UserRound className="h-4 w-4" />
+                        {userData?.prenom}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
+                        Profil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Se déconnecter
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="icon">
-                <Search className="h-5 w-5" />
-              </Button>
-              <Button variant="default" size="sm">
-                Connexion
+              <Button variant="default" size="sm" asChild>
+                <Link to="/login">Connexion</Link>
               </Button>
             </div>
           )}
@@ -54,7 +106,7 @@ const Header: React.FC = () => {
       </div>
 
       {/* Mobile Navigation */}
-      {isMobile && isMenuOpen && (
+      {isMobile && isMenuOpen && currentUser && (
         <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm pt-16 animate-fade-in">
           <nav className="container mx-auto px-4 py-8 flex flex-col space-y-6 text-lg font-medium">
             <Link 
@@ -67,26 +119,32 @@ const Header: React.FC = () => {
             >
               Tableau de bord
             </Link>
-            <Link 
-              to="/properties" 
-              className={cn(
-                "py-2 transition-colors hover:text-primary", 
-                location.pathname === "/properties" ? "text-primary font-semibold" : ""
-              )}
-              onClick={closeMenu}
-            >
-              Biens immobiliers
-            </Link>
-            <Link 
-              to="/tenants" 
-              className={cn(
-                "py-2 transition-colors hover:text-primary", 
-                location.pathname === "/tenants" ? "text-primary font-semibold" : ""
-              )}
-              onClick={closeMenu}
-            >
-              Locataires
-            </Link>
+            
+            {userRole === 'proprietaire' && (
+              <>
+                <Link 
+                  to="/properties" 
+                  className={cn(
+                    "py-2 transition-colors hover:text-primary", 
+                    location.pathname === "/properties" ? "text-primary font-semibold" : ""
+                  )}
+                  onClick={closeMenu}
+                >
+                  Biens immobiliers
+                </Link>
+                <Link 
+                  to="/tenants" 
+                  className={cn(
+                    "py-2 transition-colors hover:text-primary", 
+                    location.pathname === "/tenants" ? "text-primary font-semibold" : ""
+                  )}
+                  onClick={closeMenu}
+                >
+                  Locataires
+                </Link>
+              </>
+            )}
+            
             <Link 
               to="/documents" 
               className={cn(
@@ -117,8 +175,12 @@ const Header: React.FC = () => {
             >
               Maintenance
             </Link>
+            
             <div className="pt-4 flex items-center">
-              <Button className="w-full">Connexion</Button>
+              <Button className="w-full" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Se déconnecter
+              </Button>
             </div>
           </nav>
         </div>

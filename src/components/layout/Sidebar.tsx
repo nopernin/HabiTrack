@@ -10,8 +10,10 @@ import {
   CreditCard, 
   Wrench, 
   Users,
-  ChevronRight
+  ChevronRight,
+  Home
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 type NavItemProps = {
   to: string;
@@ -46,6 +48,7 @@ const NavItem = ({ to, icon: Icon, label, expanded }: NavItemProps) => {
 
 const Sidebar = () => {
   const [expanded, setExpanded] = useState(false);
+  const { userRole } = useAuth();
 
   const toggleSidebar = () => {
     setExpanded(!expanded);
@@ -61,13 +64,30 @@ const Sidebar = () => {
     collapsed: { rotate: 0 }
   };
 
-  const navItems = [
+  // Common nav items for both roles
+  const commonNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
-    { to: '/properties', icon: Building, label: 'Biens immobiliers' },
-    { to: '/tenants', icon: Users, label: 'Locataires' },
     { to: '/documents', icon: FileText, label: 'Documents' },
     { to: '/finance', icon: CreditCard, label: 'Finances' },
     { to: '/maintenance', icon: Wrench, label: 'Maintenance' },
+  ];
+
+  // Proprietaire-specific nav items
+  const proprietaireNavItems = [
+    { to: '/properties', icon: Building, label: 'Biens immobiliers' },
+    { to: '/tenants', icon: Users, label: 'Locataires' },
+  ];
+
+  // Locataire-specific nav items
+  const locataireNavItems = [
+    { to: '/mon-logement', icon: Home, label: 'Mon logement' },
+  ];
+
+  // Get the appropriate nav items based on user role
+  const navItems = [
+    ...commonNavItems,
+    ...(userRole === 'proprietaire' ? proprietaireNavItems : []),
+    ...(userRole === 'locataire' ? locataireNavItems : [])
   ];
 
   return (

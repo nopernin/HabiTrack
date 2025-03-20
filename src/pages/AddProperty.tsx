@@ -1,29 +1,68 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PageTransition from '@/components/ui/PageTransition';
 import PropertyForm from '@/components/PropertyForm';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/utils/types';
-import { v4 as uuidv4 } from 'uuid';
 import MainLayout from '@/components/layout/MainLayout';
+import { addProperty, mapPropertyToFirestoreProperty } from '@/services/property.service';
+import { useAuth } from '@/context/AuthContext';
+import { uploadPropertyImage } from '@/services/storage.service';
 
 const AddProperty = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { userData } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (property: Partial<Property>) => {
-    // Dans une application réelle, cette fonction enverrait les données à une API
-    // Ici, nous simulons simplement le succès et redirigeons vers la liste des biens
-    console.log('Nouveau bien ajouté:', property);
+  const handleSubmit = async (property: Partial<Property>, imageFile?: File) => {
+    if (!userData?.uid) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour ajouter un bien",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    toast({
-      title: "Bien ajouté avec succès",
-      description: `${property.name} a été ajouté à votre portefeuille.`,
-    });
+    setIsSubmitting(true);
+    
+    try {
+      // Handle image upload if provided
+      let imageUrl = property.imageUrl || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2940&q=80';
+      
+      if (imageFile) {
+        imageUrl = await uploadPropertyImage(imageFile, userData.uid, 'temp-id');
+      }
+      
+      // Prepare property data with image URL
+      const propertyWithImage = {
+        ...property,
+        imageUrl
+      } as Property;
+      
+      // Map to Firestore format and add to database
+      const firestoreProperty = mapPropertyToFirestoreProperty(propertyWithImage, userData.uid);
+      await addProperty(firestoreProperty);
+      
+      toast({
+        title: "Bien ajouté avec succès",
+        description: `${property.name} a été ajouté à votre portefeuille.`,
+      });
 
-    // Redirection vers la page des biens
-    navigate('/properties');
+      // Redirect to properties page
+      navigate('/properties');
+    } catch (error) {
+      console.error('Error adding property:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'ajout du bien.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -43,6 +82,7 @@ const AddProperty = () => {
             <PropertyForm 
               onSubmit={handleSubmit}
               onCancel={handleCancel}
+              isSubmitting={isSubmitting}
             />
           </div>
         </div>

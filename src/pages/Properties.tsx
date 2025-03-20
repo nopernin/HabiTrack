@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Filter, SlidersHorizontal, Building, Trash2 } from 'lucide-react';
 import PageTransition from '@/components/ui/PageTransition';
@@ -7,7 +7,6 @@ import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockProperties, getTenantsByPropertyId } from '@/utils/mockData';
 import { Property, PropertyStatus, PropertyType } from '@/utils/types';
 import MainLayout from '@/components/layout/MainLayout';
 import { 
@@ -22,31 +21,73 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { getPropertiesByOwner, deleteProperty, mapFirestorePropertyToProperty } from '@/services/property.service';
 
 const Properties = () => {
   const { toast } = useToast();
-  const [properties, setProperties] = useState<Property[]>(mockProperties);
+  const { userData } = useAuth();
+  const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch properties from Firestore
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (!userData?.uid) return;
+      
+      try {
+        setIsLoading(true);
+        const firestoreProperties = await getPropertiesByOwner(userData.uid);
+        const mappedProperties = firestoreProperties.map(mapFirestorePropertyToProperty);
+        setProperties(mappedProperties);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger vos biens immobiliers",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, [userData, toast]);
 
   const handleDeleteProperty = (property: Property) => {
     setPropertyToDelete(property);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (propertyToDelete) {
-      const updatedProperties = properties.filter(p => p.id !== propertyToDelete.id);
-      setProperties(updatedProperties);
-      
-      toast({
-        title: "Bien supprimé",
-        description: `${propertyToDelete.name} a été supprimé avec succès.`,
-      });
-      
-      setPropertyToDelete(null);
+      try {
+        await deleteProperty(propertyToDelete.id);
+        
+        // Update local state
+        const updatedProperties = properties.filter(p => p.id !== propertyToDelete.id);
+        setProperties(updatedProperties);
+        
+        toast({
+          title: "Bien supprimé",
+          description: `${propertyToDelete.name} a été supprimé avec succès.`,
+        });
+        
+      } catch (error) {
+        console.error("Error deleting property:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la suppression du bien.",
+          variant: "destructive"
+        });
+      } finally {
+        setPropertyToDelete(null);
+      }
     }
   };
 
@@ -121,7 +162,7 @@ const Properties = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tous les statuts</SelectItem>
-                      {Object.values(PropertyStatus).map((status) => (
+                      {Object.values(PropertyStatus).filter(status => status !== PropertyStatus.FOR_SALE).map((status) => (
                         <SelectItem key={status} value={status}>
                           {status}
                         </SelectItem>
@@ -153,7 +194,11 @@ const Properties = () => {
           </div>
 
           {/* Properties grid */}
-          {filteredProperties.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : filteredProperties.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filteredProperties.map((property) => (
                 <div key={property.id} className="relative group">
@@ -184,39 +229,29 @@ const Properties = () => {
               </Button>
             </div>
           )}
-
-          {/* Free version limit reminder */}
-          {mockProperties.length >= 3 && (
-            <div className="mt-8 p-4 bg-muted/20 rounded-lg border border-dashed">
-              <p className="text-sm text-muted-foreground text-center">
-                Vous utilisez la version gratuite, limitée à 3 biens. 
-                <Button variant="link" className="p-0 h-auto text-sm font-medium">
-                  Passer à la version premium
-                </Button>
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Delete confirmation dialog */}
-        <AlertDialog>
-          <AlertDialogTrigger className="hidden">Supprimer</AlertDialogTrigger>
-          {propertyToDelete && (
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce bien ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Vous êtes sur le point de supprimer "{propertyToDelete.name}". Cette action est irréversible et supprimera toutes les données associées à ce bien.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPropertyToDelete(null)}>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          )}
+        <AlertDialog open={!!propertyToDelete} onOpenChange={(open) => !open && setPropertyToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce bien ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {propertyToDelete && (
+                  <>
+                    Vous êtes sur le point de supprimer "{propertyToDelete.name}". 
+                    Cette action est irréversible et supprimera toutes les données associées à ce bien.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPropertyToDelete(null)}>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
         </AlertDialog>
       </PageTransition>
     </MainLayout>
