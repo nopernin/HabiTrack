@@ -22,6 +22,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
 }) => {
   const { toast } = useToast();
 
+  // Filtrer les statuts pour enlever "À VENDRE"
+  const filteredStatuses = Object.values(PropertyStatus).filter(status => 
+    status !== PropertyStatus.FOR_SALE
+  );
+
   const [formData, setFormData] = useState<Partial<Property>>(
     property || {
       name: '',
@@ -217,7 +222,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({
               <SelectValue placeholder="Sélectionner un statut" />
             </SelectTrigger>
             <SelectContent>
-              {Object.values(PropertyStatus).map((status) => (
+              {filteredStatuses.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status}
                 </SelectItem>

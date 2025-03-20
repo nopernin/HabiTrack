@@ -15,6 +15,7 @@ import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
 import AddProperty from "./pages/AddProperty";
 import Tenants from "./pages/Tenants";
+import AddPayment from "./pages/AddPayment";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/properties/new" element={<AddProperty />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/finance" element={<Finance />} />
+            <Route path="/finance/add-payment" element={<AddPayment />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/tenants" element={<Tenants />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

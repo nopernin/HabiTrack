@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Filter, SlidersHorizontal, Building } from 'lucide-react';
-import Header from '@/components/layout/Header';
+import { Plus, Filter, SlidersHorizontal, Building, Trash2 } from 'lucide-react';
 import PageTransition from '@/components/ui/PageTransition';
 import PropertyCard from '@/components/dashboard/PropertyCard';
 import { Button } from '@/components/ui/button';
@@ -10,13 +9,46 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { mockProperties, getTenantsByPropertyId } from '@/utils/mockData';
 import { Property, PropertyStatus, PropertyType } from '@/utils/types';
+import MainLayout from '@/components/layout/MainLayout';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 const Properties = () => {
-  const [properties] = useState<Property[]>(mockProperties);
+  const { toast } = useToast();
+  const [properties, setProperties] = useState<Property[]>(mockProperties);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+
+  const handleDeleteProperty = (property: Property) => {
+    setPropertyToDelete(property);
+  };
+
+  const confirmDelete = () => {
+    if (propertyToDelete) {
+      const updatedProperties = properties.filter(p => p.id !== propertyToDelete.id);
+      setProperties(updatedProperties);
+      
+      toast({
+        title: "Bien supprimé",
+        description: `${propertyToDelete.name} a été supprimé avec succès.`,
+      });
+      
+      setPropertyToDelete(null);
+    }
+  };
 
   const filteredProperties = properties.filter(property => {
     // Search query filter
@@ -35,10 +67,9 @@ const Properties = () => {
   });
 
   return (
-    <>
-      <Header />
+    <MainLayout>
       <PageTransition>
-        <main className="page-container pb-16">
+        <div className="page-container pb-16">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
               <h1 className="page-title">Mes biens immobiliers</h1>
@@ -124,15 +155,19 @@ const Properties = () => {
           {/* Properties grid */}
           {filteredProperties.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProperties.map((property) => {
-                const tenants = getTenantsByPropertyId(property.id);
-                return (
-                  <PropertyCard 
-                    key={property.id} 
-                    property={property} 
-                  />
-                );
-              })}
+              {filteredProperties.map((property) => (
+                <div key={property.id} className="relative group">
+                  <PropertyCard property={property} />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    onClick={() => handleDeleteProperty(property)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-12 border border-dashed rounded-lg">
@@ -151,7 +186,7 @@ const Properties = () => {
           )}
 
           {/* Free version limit reminder */}
-          {properties.length >= 3 && (
+          {mockProperties.length >= 3 && (
             <div className="mt-8 p-4 bg-muted/20 rounded-lg border border-dashed">
               <p className="text-sm text-muted-foreground text-center">
                 Vous utilisez la version gratuite, limitée à 3 biens. 
@@ -161,9 +196,30 @@ const Properties = () => {
               </p>
             </div>
           )}
-        </main>
+        </div>
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog>
+          <AlertDialogTrigger className="hidden">Supprimer</AlertDialogTrigger>
+          {propertyToDelete && (
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce bien ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Vous êtes sur le point de supprimer "{propertyToDelete.name}". Cette action est irréversible et supprimera toutes les données associées à ce bien.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setPropertyToDelete(null)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          )}
+        </AlertDialog>
       </PageTransition>
-    </>
+    </MainLayout>
   );
 };
 

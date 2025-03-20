@@ -1,12 +1,12 @@
 
 import React from 'react';
-import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
 import PropertyForm from '@/components/PropertyForm';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/utils/types';
 import { v4 as uuidv4 } from 'uuid';
+import MainLayout from '@/components/layout/MainLayout';
 
 const AddProperty = () => {
   const navigate = useNavigate();
@@ -31,10 +31,9 @@ const AddProperty = () => {
   };
 
   return (
-    <>
-      <Header />
+    <MainLayout>
       <PageTransition>
-        <main className="page-container pb-16">
+        <div className="page-container pb-16">
           <div className="mb-8">
             <h1 className="page-title">Ajouter un bien</h1>
             <p className="text-muted-foreground">Complétez le formulaire pour ajouter un nouveau bien à votre portefeuille</p>
@@ -46,9 +45,9 @@ const AddProperty = () => {
               onCancel={handleCancel}
             />
           </div>
-        </main>
+        </div>
       </PageTransition>
-    </>
+    </MainLayout>
   );
 };
 

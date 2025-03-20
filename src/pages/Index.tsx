@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building, Home, FileText, CreditCard, Wrench, ArrowRight, Plus, DollarSign, UserRound, AlertTriangle } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
 import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
@@ -18,6 +17,8 @@ import {
   getTotalIncome 
 } from '@/utils/mockData';
 import { PaymentStatus, MaintenanceStatus } from '@/utils/types';
+import MainLayout from '@/components/layout/MainLayout';
+import PromotionCard from '@/components/dashboard/PromotionCard';
 
 const Index = () => {
   // Réduire le nombre de propriétés à 2 (au lieu de 3)
@@ -35,24 +36,16 @@ const Index = () => {
   ).length;
   
   return (
-    <>
-      <Header />
+    <MainLayout>
       <PageTransition>
-        <main className="page-container pb-16">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <div>
-              <h1 className="page-title">Tableau de bord</h1>
-              <p className="text-muted-foreground">Bienvenue sur votre gestionnaire immobilier</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <Button asChild>
-                <Link to="/properties/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Ajouter un bien
-                </Link>
-              </Button>
-            </div>
+        <div className="page-container pb-16">
+          <div className="mb-6">
+            <h1 className="page-title">Bienvenue sur votre tableau de bord</h1>
+            <p className="text-muted-foreground">Gérez efficacement vos biens immobiliers</p>
           </div>
+
+          {/* Carte promotionnelle */}
+          <PromotionCard />
 
           {/* Stat cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -189,9 +182,9 @@ const Index = () => {
               </Button>
             </CardFooter>
           </Card>
-        </main>
+        </div>
       </PageTransition>
-    </>
+    </MainLayout>
   );
 };
 

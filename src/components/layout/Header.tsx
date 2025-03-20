@@ -19,10 +19,6 @@ const Header: React.FC = () => {
     setIsMenuOpen(false);
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4 flex h-16 items-center justify-between">
@@ -34,66 +30,6 @@ const Header: React.FC = () => {
             <span className="font-semibold text-xl">Renter Ranger</span>
           </Link>
         </div>
-
-        {/* Desktop Navigation */}
-        {!isMobile && (
-          <nav className="mx-6 flex items-center space-x-6 text-sm font-medium">
-            <Link 
-              to="/" 
-              className={cn(
-                "transition-colors hover:text-primary", 
-                isActive("/") ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              Tableau de bord
-            </Link>
-            <Link 
-              to="/properties" 
-              className={cn(
-                "transition-colors hover:text-primary", 
-                isActive("/properties") ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              Biens immobiliers
-            </Link>
-            <Link 
-              to="/tenants" 
-              className={cn(
-                "transition-colors hover:text-primary", 
-                isActive("/tenants") ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              Locataires
-            </Link>
-            <Link 
-              to="/documents" 
-              className={cn(
-                "transition-colors hover:text-primary", 
-                isActive("/documents") ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              Documents
-            </Link>
-            <Link 
-              to="/finance" 
-              className={cn(
-                "transition-colors hover:text-primary", 
-                isActive("/finance") ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              Finances
-            </Link>
-            <Link 
-              to="/maintenance" 
-              className={cn(
-                "transition-colors hover:text-primary", 
-                isActive("/maintenance") ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              Maintenance
-            </Link>
-          </nav>
-        )}
 
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" className="relative">
@@ -125,7 +61,7 @@ const Header: React.FC = () => {
               to="/" 
               className={cn(
                 "py-2 transition-colors hover:text-primary", 
-                isActive("/") ? "text-primary font-semibold" : ""
+                location.pathname === "/" ? "text-primary font-semibold" : ""
               )}
               onClick={closeMenu}
             >
@@ -135,7 +71,7 @@ const Header: React.FC = () => {
               to="/properties" 
               className={cn(
                 "py-2 transition-colors hover:text-primary", 
-                isActive("/properties") ? "text-primary font-semibold" : ""
+                location.pathname === "/properties" ? "text-primary font-semibold" : ""
               )}
               onClick={closeMenu}
             >
@@ -145,7 +81,7 @@ const Header: React.FC = () => {
               to="/tenants" 
               className={cn(
                 "py-2 transition-colors hover:text-primary", 
-                isActive("/tenants") ? "text-primary font-semibold" : ""
+                location.pathname === "/tenants" ? "text-primary font-semibold" : ""
               )}
               onClick={closeMenu}
             >
@@ -155,7 +91,7 @@ const Header: React.FC = () => {
               to="/documents" 
               className={cn(
                 "py-2 transition-colors hover:text-primary", 
-                isActive("/documents") ? "text-primary font-semibold" : ""
+                location.pathname === "/documents" ? "text-primary font-semibold" : ""
               )}
               onClick={closeMenu}
             >
@@ -165,7 +101,7 @@ const Header: React.FC = () => {
               to="/finance" 
               className={cn(
                 "py-2 transition-colors hover:text-primary", 
-                isActive("/finance") ? "text-primary font-semibold" : ""
+                location.pathname === "/finance" ? "text-primary font-semibold" : ""
               )}
               onClick={closeMenu}
             >
@@ -175,7 +111,7 @@ const Header: React.FC = () => {
               to="/maintenance" 
               className={cn(
                 "py-2 transition-colors hover:text-primary", 
-                isActive("/maintenance") ? "text-primary font-semibold" : ""
+                location.pathname === "/maintenance" ? "text-primary font-semibold" : ""
               )}
               onClick={closeMenu}
             >
