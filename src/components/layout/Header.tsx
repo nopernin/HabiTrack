@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bell, Search } from 'lucide-react';
+import { Menu, X, Bell, Search, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -55,6 +55,15 @@ const Header: React.FC = () => {
               )}
             >
               Biens immobiliers
+            </Link>
+            <Link 
+              to="/tenants" 
+              className={cn(
+                "transition-colors hover:text-primary", 
+                isActive("/tenants") ? "text-primary font-semibold" : "text-muted-foreground"
+              )}
+            >
+              Locataires
             </Link>
             <Link 
               to="/documents" 
@@ -131,6 +140,16 @@ const Header: React.FC = () => {
               onClick={closeMenu}
             >
               Biens immobiliers
+            </Link>
+            <Link 
+              to="/tenants" 
+              className={cn(
+                "py-2 transition-colors hover:text-primary", 
+                isActive("/tenants") ? "text-primary font-semibold" : ""
+              )}
+              onClick={closeMenu}
+            >
+              Locataires
             </Link>
             <Link 
               to="/documents" 

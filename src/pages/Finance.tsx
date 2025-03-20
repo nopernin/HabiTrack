@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { CreditCard, DollarSign, Filter, ArrowUpRight, ArrowDownRight, Calendar, PlusCircle, Search, LineChart } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
@@ -17,7 +17,8 @@ import {
 } from '@/utils/mockData';
 import { Payment, PaymentStatus, PaymentType } from '@/utils/types';
 import { motion } from 'framer-motion';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Line, LineChart as RechartsLineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import RevenueBreakdown from '@/components/finance/RevenueBreakdown';
 
 const Finance = () => {
   const [payments] = useState(mockPayments);
@@ -25,6 +26,10 @@ const Finance = () => {
   const [propertyFilter, setPropertyFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Références pour le scroll
+  const pendingPaymentsRef = useRef<HTMLDivElement>(null);
+  const overduePaymentsRef = useRef<HTMLDivElement>(null);
 
   // Format date as DD/MM/YYYY
   const formatDate = (date: Date) => {
@@ -101,6 +106,22 @@ const Finance = () => {
 
   const incomeByMonth = getIncomeByMonth();
 
+  // Fonction pour gérer le clic sur les paiements en attente
+  const handlePendingClick = () => {
+    setActiveTab('pending');
+    if (pendingPaymentsRef.current) {
+      pendingPaymentsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Fonction pour gérer le clic sur les paiements en retard
+  const handleOverdueClick = () => {
+    setActiveTab('overdue');
+    if (overduePaymentsRef.current) {
+      overduePaymentsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <>
       <Header />
@@ -121,9 +142,11 @@ const Finance = () => {
 
           {/* Summary cards */}
           <div className="grid gap-4 md:grid-cols-3 mb-8">
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Revenus totaux</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  <RevenueBreakdown />
+                </CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -133,7 +156,7 @@ const Finance = () => {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handlePendingClick}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Paiements en attente</CardTitle>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
@@ -149,7 +172,7 @@ const Finance = () => {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleOverdueClick}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Paiements en retard</CardTitle>
                 <ArrowDownRight className="h-4 w-4 text-destructive" />
@@ -178,7 +201,8 @@ const Finance = () => {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={incomeByMonth}>
+                  <RechartsLineChart data={incomeByMonth}>
+                    <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                       dataKey="name"
                       stroke="#888888"
@@ -197,19 +221,22 @@ const Finance = () => {
                       formatter={(value: number) => [`${value} €`, 'Revenus']}
                       labelFormatter={(label) => `${label}`}
                     />
-                    <Bar
+                    <Line
+                      type="monotone"
                       dataKey="income"
-                      fill="hsl(var(--primary))"
-                      radius={[4, 4, 0, 0]}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
-                  </BarChart>
+                  </RechartsLineChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
 
           {/* Payments list */}
-          <div className="space-y-4">
+          <div className="space-y-4" ref={pendingPaymentsRef}>
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Paiements</h2>
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
@@ -259,86 +286,88 @@ const Finance = () => {
               </motion.div>
             )}
 
-            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-4 mb-4">
-                <TabsTrigger value="all">Tous</TabsTrigger>
-                <TabsTrigger value="completed">Payés</TabsTrigger>
-                <TabsTrigger value="pending">En attente</TabsTrigger>
-                <TabsTrigger value="overdue">En retard</TabsTrigger>
-              </TabsList>
-              <TabsContent value={activeTab} className="space-y-4">
-                <Card>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Référence</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Bien</TableHead>
-                          <TableHead>Locataire</TableHead>
-                          <TableHead>Montant</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Type</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPayments.length > 0 ? (
-                          filteredPayments.map((payment) => (
-                            <TableRow key={payment.id}>
-                              <TableCell className="font-medium">
-                                {payment.reference || '-'}
-                              </TableCell>
-                              <TableCell className="flex items-center">
-                                <Calendar className="h-3 w-3 mr-2 text-muted-foreground" />
-                                {formatDate(payment.date)}
-                              </TableCell>
-                              <TableCell>{getPropertyName(payment.propertyId)}</TableCell>
-                              <TableCell>{getTenantName(payment.tenantId)}</TableCell>
-                              <TableCell className="font-medium">
-                                {payment.amount.toLocaleString()} €
-                              </TableCell>
-                              <TableCell>
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  payment.status === PaymentStatus.COMPLETED
-                                    ? 'bg-green-100 text-green-800'
-                                    : payment.status === PaymentStatus.PENDING
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : payment.status === PaymentStatus.OVERDUE
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {payment.status}
-                                </span>
-                              </TableCell>
-                              <TableCell>{payment.type}</TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
+            <div ref={overduePaymentsRef}>
+              <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid grid-cols-4 mb-4">
+                  <TabsTrigger value="all">Tous</TabsTrigger>
+                  <TabsTrigger value="completed">Payés</TabsTrigger>
+                  <TabsTrigger value="pending">En attente</TabsTrigger>
+                  <TabsTrigger value="overdue">En retard</TabsTrigger>
+                </TabsList>
+                <TabsContent value={activeTab} className="space-y-4">
+                  <Card>
+                    <CardContent className="p-0">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-10">
-                              <CreditCard className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                              <h3 className="mt-4 text-lg font-medium">Aucun paiement trouvé</h3>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                Modifiez vos filtres ou ajoutez un nouveau paiement.
-                              </p>
-                            </TableCell>
+                            <TableHead>Référence</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Bien</TableHead>
+                            <TableHead>Locataire</TableHead>
+                            <TableHead>Montant</TableHead>
+                            <TableHead>Statut</TableHead>
+                            <TableHead>Type</TableHead>
                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-                <div className="flex justify-between items-center pt-2 px-2">
-                  <div className="text-sm text-muted-foreground">
-                    {filteredPayments.length} paiements • Total: {totalAmount.toLocaleString()} €
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPayments.length > 0 ? (
+                            filteredPayments.map((payment) => (
+                              <TableRow key={payment.id}>
+                                <TableCell className="font-medium">
+                                  {payment.reference || '-'}
+                                </TableCell>
+                                <TableCell className="flex items-center">
+                                  <Calendar className="h-3 w-3 mr-2 text-muted-foreground" />
+                                  {formatDate(payment.date)}
+                                </TableCell>
+                                <TableCell>{getPropertyName(payment.propertyId)}</TableCell>
+                                <TableCell>{getTenantName(payment.tenantId)}</TableCell>
+                                <TableCell className="font-medium">
+                                  {payment.amount.toLocaleString()} €
+                                </TableCell>
+                                <TableCell>
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                    payment.status === PaymentStatus.COMPLETED
+                                      ? 'bg-green-100 text-green-800'
+                                      : payment.status === PaymentStatus.PENDING
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : payment.status === PaymentStatus.OVERDUE
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {payment.status}
+                                  </span>
+                                </TableCell>
+                                <TableCell>{payment.type}</TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-10">
+                                <CreditCard className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                                <h3 className="mt-4 text-lg font-medium">Aucun paiement trouvé</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  Modifiez vos filtres ou ajoutez un nouveau paiement.
+                                </p>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                  <div className="flex justify-between items-center pt-2 px-2">
+                    <div className="text-sm text-muted-foreground">
+                      {filteredPayments.length} paiements • Total: {totalAmount.toLocaleString()} €
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <LineChart className="mr-2 h-4 w-4" />
+                      Exporter
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <LineChart className="mr-2 h-4 w-4" />
-                    Exporter
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         </main>
       </PageTransition>

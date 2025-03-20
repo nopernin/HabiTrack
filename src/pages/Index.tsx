@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
 import StatCard from '@/components/dashboard/StatCard';
 import PropertyCard from '@/components/dashboard/PropertyCard';
+import EventCalendar from '@/components/dashboard/EventCalendar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -19,7 +20,8 @@ import {
 import { PaymentStatus, MaintenanceStatus } from '@/utils/types';
 
 const Index = () => {
-  const [properties] = useState(mockProperties);
+  // Réduire le nombre de propriétés à 2 (au lieu de 3)
+  const [properties] = useState(mockProperties.slice(0, 2));
   
   // Dashboard stats
   const totalProperties = properties.length;
@@ -54,18 +56,22 @@ const Index = () => {
 
           {/* Stat cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            <StatCard 
-              title="Biens immobiliers" 
-              value={totalProperties} 
-              description="Nombre total de biens" 
-              icon={Building} 
-            />
-            <StatCard 
-              title="Locataires" 
-              value={totalTenants} 
-              description="Locataires actifs" 
-              icon={UserRound} 
-            />
+            <Link to="/properties" className="block w-full">
+              <StatCard 
+                title="Biens immobiliers" 
+                value={totalProperties} 
+                description="Nombre total de biens" 
+                icon={Building} 
+              />
+            </Link>
+            <Link to="/tenants" className="block w-full">
+              <StatCard 
+                title="Locataires" 
+                value={totalTenants} 
+                description="Locataires actifs" 
+                icon={UserRound} 
+              />
+            </Link>
             <StatCard 
               title="Taux d'occupation" 
               value={`${occupancyRate.toFixed(0)}%`} 
@@ -99,7 +105,7 @@ const Index = () => {
                 </Button>
               </CardHeader>
               <CardContent className="px-2">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
                   {properties.map((property) => (
                     <PropertyCard key={property.id} property={property} />
                   ))}
@@ -107,14 +113,17 @@ const Index = () => {
               </CardContent>
             </Card>
 
+            {/* Event Calendar */}
+            <EventCalendar />
+
             {/* Quick Actions Card */}
-            <Card>
+            <Card className="lg:col-span-3">
               <CardHeader>
                 <CardTitle className="text-xl">Actions rapides</CardTitle>
                 <CardDescription>Accédez rapidement aux fonctionnalités principales</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Link to="/documents">
                     <Button variant="outline" className="w-full justify-start" size="lg">
                       <FileText className="mr-2 h-5 w-5 text-primary" />
