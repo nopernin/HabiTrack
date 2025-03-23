@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,7 @@ export type CalendarEvent = {
   id: string;
   title: string;
   date: Date;
-  type: 'payment' | 'maintenance' | 'lease' | 'document';
+  type: 'payment' | 'maintenance' | 'lease' | 'document' | 'visit';
   description?: string;
   propertyId?: string;
   tenantId?: string;
@@ -69,6 +68,22 @@ export const generateMockEvents = (): CalendarEvent[] => {
       description: 'Loyer mensuel pour Appartement Lyon',
       propertyId: 'property3',
     },
+    {
+      id: '6',
+      title: 'Visite d\'appartement',
+      date: new Date(currentYear, currentMonth, 15),
+      type: 'visit',
+      description: 'Visite de l\'appartement',
+      propertyId: 'property2',
+    },
+    {
+      id: '7',
+      title: 'Maintenance prévue',
+      date: new Date(currentYear, currentMonth, 25),
+      type: 'maintenance',
+      description: 'Maintenance prévue',
+      propertyId: 'property3',
+    },
   ];
 };
 
@@ -117,6 +132,8 @@ const EventCalendar: React.FC = () => {
         return <User className="h-4 w-4" />;
       case 'document':
         return <FileText className="h-4 w-4" />;
+      case 'visit':
+        return <Home className="h-4 w-4" />;
       default:
         return <CalendarIcon className="h-4 w-4" />;
     }
@@ -133,6 +150,8 @@ const EventCalendar: React.FC = () => {
         return "bg-purple-100 text-purple-800";
       case 'document':
         return "bg-green-100 text-green-800";
+      case 'visit':
+        return "bg-teal-100 text-teal-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -141,10 +160,9 @@ const EventCalendar: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Calendrier des événements</CardTitle>
-        <CardDescription>Planifiez et suivez les dates importantes</CardDescription>
+        <CardTitle className="text-xl">Calendrier</CardTitle>
       </CardHeader>
-      <CardContent className="pb-6">
+      <CardContent>
         <Calendar
           mode="single"
           selected={date}
@@ -154,21 +172,32 @@ const EventCalendar: React.FC = () => {
           }}
           className="rounded-md border"
           locale={fr}
-          modifiersClassNames={{
-            today: 'bg-primary/10',
+          modifiers={{
+            event: (date) => events.some(event => 
+              event.date.getDate() === date.getDate() &&
+              event.date.getMonth() === date.getMonth() &&
+              event.date.getFullYear() === date.getFullYear()
+            )
+          }}
+          modifiersStyles={{
+            event: {
+              backgroundColor: 'transparent',
+              color: 'inherit',
+              position: 'relative'
+            }
           }}
           components={{
             DayContent: ({ date }) => (
-              <div className="relative">
-                <div>{date.getDate()}</div>
+              <div className="flex flex-col items-center">
+                <div className="text-sm">{date.getDate()}</div>
                 {hasEvents(date) && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full mt-0.5" />
                 )}
               </div>
             ),
           }}
         />
-
+        
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

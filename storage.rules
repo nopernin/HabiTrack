@@ -1,0 +1,34 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Fonction pour vérifier si l'utilisateur est authentifié
+    function isAuth() {
+      return request.auth != null;
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est propriétaire
+    function isOwner(proprietaireID) {
+      return request.auth.uid == proprietaireID;
+    }
+
+    // Fonction pour vérifier si l'utilisateur est locataire
+    function isTenant(locataireID) {
+      return request.auth.uid == locataireID;
+    }
+
+    // Règles pour les documents des biens
+    match /biens/{bienId}/documents/{documentId} {
+      allow read: if isAuth() && (
+        isOwner(resource.metadata.proprietaireId) ||
+        isTenant(resource.metadata.locataireId)
+      );
+      allow write: if isAuth() && isOwner(request.resource.metadata.proprietaireId);
+    }
+
+    // Règles pour les images des biens
+    match /biens/{bienId}/images/{imageId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && isOwner(request.resource.metadata.proprietaireId);
+    }
+  }
+} 

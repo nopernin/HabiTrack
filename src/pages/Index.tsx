@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Building, Home, FileText, CreditCard, Wrench, ArrowRight, Plus, DollarSign, UserRound, AlertTriangle } from 'lucide-react';
 import PageTransition from '@/components/ui/PageTransition';
@@ -8,44 +7,74 @@ import PropertyCard from '@/components/dashboard/PropertyCard';
 import EventCalendar from '@/components/dashboard/EventCalendar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  mockProperties, 
-  mockTenants, 
-  mockPayments, 
-  mockMaintenanceRequests,
-  getOccupancyRate, 
-  getTotalIncome 
-} from '@/utils/mockData';
 import { PaymentStatus, MaintenanceStatus } from '@/utils/types';
 import MainLayout from '@/components/layout/MainLayout';
-import PromotionCard from '@/components/dashboard/PromotionCard';
+import { getBiensProprietaire, getCurrentUser } from '@/services/firebaseServices';
+import { Bien } from '@/types/types';
 
 const Index = () => {
-  // Réduire le nombre de propriétés à 2 (au lieu de 3)
-  const [properties] = useState(mockProperties.slice(0, 2));
+  const [properties, setProperties] = useState<Bien[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [proprietaireNom, setProprietaireNom] = useState('');
   
+  useEffect(() => {
+    loadBiens();
+    loadProprietaire();
+  }, []);
+
+  const loadProprietaire = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        setProprietaireNom(user.displayName || 'Propriétaire');
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement du propriétaire:', error);
+      setProprietaireNom('Propriétaire');
+    }
+  };
+
+  const loadBiens = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user || user.role !== 'proprietaire') {
+        throw new Error('Vous devez être propriétaire pour accéder à cette page');
+      }
+      const biensData = await getBiensProprietaire(user.uid);
+      setProperties(biensData);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Dashboard stats
   const totalProperties = properties.length;
-  const totalTenants = mockTenants.length;
-  const occupancyRate = getOccupancyRate();
-  const totalIncome = getTotalIncome();
+  const biensOccupes = properties.filter(bien => bien.statut === 'occupé').length;
+  const occupancyRate = totalProperties > 0 ? (biensOccupes / totalProperties) * 100 : 0;
+  const totalIncome = properties.reduce((acc, bien) => acc + bien.loyer_mensuel, 0);
   
-  const pendingPayments = mockPayments.filter(p => p.status === PaymentStatus.PENDING).length;
-  const pendingMaintenance = mockMaintenanceRequests.filter(
-    m => m.status === MaintenanceStatus.PENDING || m.status === MaintenanceStatus.SCHEDULED
-  ).length;
+  if (loading) return <div>Chargement...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
   
   return (
     <MainLayout>
       <PageTransition>
         <div className="page-container pb-16">
-          <div className="mb-6">
-            <h1 className="page-title">Bienvenue sur votre tableau de bord</h1>
-            <p className="text-muted-foreground">Gérez efficacement vos biens immobiliers</p>
+          {/* Carte d'accueil avec image de fond */}
+          <div className="relative rounded-xl overflow-hidden h-[400px] mb-8">
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: 'url(https://img.freepik.com/free-photo/blue-armchair-against-blue-wall-living-room-interior-elegant-interior-design-with-copy-space-ai-generative_123827-23719.jpg?t=st=1742546794~exp=1742550394~hmac=a3f064ad376c0b10fc6280034088c373649354239f96a2ecb443046ef4871b35&w=1380)'
+              }}
+            />
+            <div className="absolute top-[15%] left-[15%]">
+              <h1 className="text-7xl font-bold text-white">Welcome</h1>
+            </div>
           </div>
-
-          {/* Carte promotionnelle */}
-          <PromotionCard />
 
           {/* Stat cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -60,7 +89,7 @@ const Index = () => {
             <Link to="/tenants" className="block w-full">
               <StatCard 
                 title="Locataires" 
-                value={totalTenants} 
+                value={biensOccupes} 
                 description="Locataires actifs" 
                 icon={UserRound} 
               />
@@ -91,15 +120,23 @@ const Index = () => {
                     Gérez vos propriétés (limite de 3 biens en version gratuite)
                   </CardDescription>
                 </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/properties">
-                    Voir tout <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/properties">
+                      Voir tout <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="/add-property">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ajouter un bien
+                    </Link>
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="px-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
-                  {properties.map((property) => (
+                  {properties.slice(0, 2).map((property) => (
                     <PropertyCard key={property.id} property={property} />
                   ))}
                 </div>
@@ -134,11 +171,6 @@ const Index = () => {
                         <span>Finances</span>
                         <span className="text-xs text-muted-foreground">Suivi des paiements et revenus</span>
                       </div>
-                      {pendingPayments > 0 && (
-                        <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-destructive/10 text-destructive text-xs font-medium">
-                          {pendingPayments}
-                        </span>
-                      )}
                     </Button>
                   </Link>
                   
@@ -149,11 +181,6 @@ const Index = () => {
                         <span>Maintenance</span>
                         <span className="text-xs text-muted-foreground">Suivi des interventions</span>
                       </div>
-                      {pendingMaintenance > 0 && (
-                        <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-destructive/10 text-destructive text-xs font-medium">
-                          {pendingMaintenance}
-                        </span>
-                      )}
                     </Button>
                   </Link>
                 </div>

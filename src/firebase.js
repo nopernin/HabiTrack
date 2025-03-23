@@ -1,15 +1,22 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Configuration Firebase
+// Pour obtenir ces valeurs :
+// 1. Allez sur https://console.firebase.google.com
+// 2. Sélectionnez votre projet
+// 3. Cliquez sur ⚙️ (roue dentée) > Project settings
+// 4. Dans "Your apps", trouvez votre app web ou créez-en une nouvelle
+// 5. Copiez les valeurs de configuration ci-dessous
 const firebaseConfig = {
   apiKey: "AIzaSyA0kwbHQKUqax2GGIcmjd25WBDJY-4eMmE",
   authDomain: "habitrack-0.firebaseapp.com",
+  databaseURL: "https://habitrack-0-default-rtdb.firebaseio.com",
   projectId: "habitrack-0",
   storageBucket: "habitrack-0.firebasestorage.app",
   messagingSenderId: "735189473535",
@@ -19,6 +26,13 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
 
-export { app, analytics };
+// Collections Firestore
+export const COLLECTIONS = {
+  PROPRIETAIRES: 'proprietaires',
+  LOCATAIRES: 'locataires',
+  BIENS: 'biens'
+};

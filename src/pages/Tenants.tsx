@@ -1,53 +1,90 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, UserRound, Home, Mail, Phone, Calendar, Plus, Search, UserPlus } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockTenants, mockProperties } from '@/utils/mockData';
 import { format } from 'date-fns';
+import MainLayout from '@/components/layout/MainLayout';
+import { getBiensProprietaire, getCurrentUser, getLocatairesBien } from '@/services/firebaseServices';
+import { Bien, Locataire } from '@/types/types';
 
 const Tenants = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [tenants] = useState(mockTenants);
+  const [properties, setProperties] = useState<Bien[]>([]);
+  const [tenants, setTenants] = useState<Locataire[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadPropertiesAndTenants();
+  }, []);
+
+  const loadPropertiesAndTenants = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user || user.role !== 'proprietaire') {
+        throw new Error('Vous devez être propriétaire pour accéder à cette page');
+      }
+
+      // Charger les biens du propriétaire
+      const biensData = await getBiensProprietaire(user.uid);
+      setProperties(biensData);
+
+      // Charger les locataires pour chaque bien occupé
+      const tenantsPromises = biensData
+        .filter(bien => bien.locataireId)
+        .map(bien => getLocatairesBien(bien.id));
+
+      const tenantsResults = await Promise.all(tenantsPromises);
+      const allTenants = tenantsResults.flat();
+      setTenants(allTenants);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fonction pour formater les dates
   const formatDate = (date: Date) => {
     return format(new Date(date), 'dd/MM/yyyy');
   };
 
-  // Fonction pour trouver le nom d'un bien à partir de son ID
-  const getPropertyName = (propertyId: string) => {
-    const property = mockProperties.find(p => p.id === propertyId);
-    return property ? property.name : 'N/A';
-  };
-
   // Filtrer les locataires en fonction de la recherche
-  const filteredTenants = tenants.filter(tenant => 
-    tenant.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tenant.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    getPropertyName(tenant.propertyId).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTenants = tenants
+    .filter(tenant => 
+      tenant.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tenant.email.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .map(tenant => {
+      const property = properties.find(p => p.locataireId === tenant.id);
+      return {
+        id: tenant.id,
+        firstName: tenant.nom.split(' ')[0],
+        lastName: tenant.nom.split(' ').slice(1).join(' '),
+        email: tenant.email,
+        phone: tenant.telephone,
+        propertyId: property?.id || '',
+        leaseStart: property?.debut_bail || new Date(),
+        leaseEnd: property?.fin_bail || new Date(),
+        rentAmount: property?.loyer_mensuel || 0
+      };
+    });
+
+  if (loading) return <div>Chargement...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <>
-      <Header />
+    <MainLayout>
       <PageTransition>
-        <main className="page-container pb-16">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
               <h1 className="page-title">Locataires</h1>
               <p className="text-muted-foreground">Gestion des locataires et des contrats de location</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Ajouter un locataire
-              </Button>
             </div>
           </div>
 
@@ -93,7 +130,7 @@ const Tenants = () => {
                         <TableCell>
                           <div className="flex items-center">
                             <Home className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {getPropertyName(tenant.propertyId)}
+                            {properties.find(p => p.locataireId === tenant.id)?.nom || 'N/A'}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -128,9 +165,9 @@ const Tenants = () => {
               </Table>
             </CardContent>
           </Card>
-        </main>
+        </div>
       </PageTransition>
-    </>
+    </MainLayout>
   );
 };
 

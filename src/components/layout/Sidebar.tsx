@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -52,8 +51,8 @@ const Sidebar = () => {
   };
 
   const sidebarVariants = {
-    expanded: { width: '240px' },
-    collapsed: { width: '64px' }
+    expanded: { width: '280px' },
+    collapsed: { width: '80px' }
   };
 
   const toggleButtonVariants = {
@@ -77,15 +76,15 @@ const Sidebar = () => {
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className={cn(
-        "h-screen sticky top-16 left-0 z-30 bg-background border-r border-border overflow-hidden",
-        expanded ? "w-60" : "w-16"
+        "h-screen fixed top-24 left-0 z-30 bg-background border-r border-border overflow-hidden",
+        expanded ? "w-[280px]" : "w-[80px]"
       )}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
     >
-      <div className="flex flex-col h-full pt-5 pb-4">
+      <div className="flex flex-col h-full pt-16 pb-4">
         <div className="flex-1 flex flex-col">
-          <nav className="flex-1 space-y-1 px-2">
+          <nav className="flex-1 space-y-3 px-4">
             {navItems.map((item) => (
               <NavItem
                 key={item.to}
@@ -97,10 +96,10 @@ const Sidebar = () => {
             ))}
           </nav>
         </div>
-        <div className="px-3 mt-auto">
+        <div className="px-4 mt-auto">
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-accent flex items-center justify-center w-full"
+            className="p-3 rounded-lg hover:bg-accent flex items-center justify-center w-full"
             aria-label={expanded ? "Réduire le menu" : "Agrandir le menu"}
           >
             <motion.div
@@ -109,7 +108,7 @@ const Sidebar = () => {
               variants={toggleButtonVariants}
               transition={{ duration: 0.3 }}
             >
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              <ChevronRight className="h-6 w-6 text-muted-foreground" />
             </motion.div>
           </button>
         </div>

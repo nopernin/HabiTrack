@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Filter, SlidersHorizontal, Building, Trash2 } from 'lucide-react';
 import PageTransition from '@/components/ui/PageTransition';
@@ -22,49 +21,121 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { getBiensProprietaire, supprimerBien, getCurrentUser, ajouterBien } from '../services/firebaseServices';
+import { Bien } from '../types/types';
+import PropertyForm from '@/components/PropertyForm';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Properties = () => {
   const { toast } = useToast();
-  const [properties, setProperties] = useState<Property[]>(mockProperties);
+  const [biens, setBiens] = useState<Bien[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [bienToDelete, setBienToDelete] = useState<Bien | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
 
-  const handleDeleteProperty = (property: Property) => {
-    setPropertyToDelete(property);
-  };
+  useEffect(() => {
+    loadBiens();
+  }, []);
 
-  const confirmDelete = () => {
-    if (propertyToDelete) {
-      const updatedProperties = properties.filter(p => p.id !== propertyToDelete.id);
-      setProperties(updatedProperties);
-      
-      toast({
-        title: "Bien supprimé",
-        description: `${propertyToDelete.name} a été supprimé avec succès.`,
-      });
-      
-      setPropertyToDelete(null);
+  const loadBiens = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user || user.role !== 'proprietaire') {
+        throw new Error('Vous devez être propriétaire pour accéder à cette page');
+      }
+      const biensData = await getBiensProprietaire(user.uid);
+      setBiens(biensData);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredProperties = properties.filter(property => {
-    // Search query filter
-    const matchesSearch = 
-      property.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      property.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      property.city.toLowerCase().includes(searchQuery.toLowerCase());
-      
-    // Status filter
-    const matchesStatus = statusFilter === 'all' || property.status === statusFilter;
+  const handleDelete = async () => {
+    if (!bienToDelete) return;
     
-    // Type filter
-    const matchesType = typeFilter === 'all' || property.type === typeFilter;
+    try {
+      await supprimerBien(bienToDelete.id);
+      setBienToDelete(null);
+      loadBiens();
+      toast({
+        title: "Bien supprimé",
+        description: "Le bien a été supprimé avec succès.",
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        title: "Erreur",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddBien = async (property: Partial<Property>) => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) throw new Error('Utilisateur non connecté');
+
+      const newBien: Omit<Bien, 'id'> = {
+        nom: property.name || '',
+        type: property.type || '',
+        adresse: property.address || '',
+        ville: property.city || '',
+        code_postal: property.postalCode || '',
+        pays: property.country || 'France',
+        nombre_pieces: property.rooms || 0,
+        surface: property.area || 0,
+        loyer_mensuel: property.rent || 0,
+        statut: 'vacant',
+        description: property.description || '',
+        imageURL: property.imageUrl || '',
+        proprietaireID: user.uid
+      };
+
+      await ajouterBien(newBien);
+      setShowAddForm(false);
+      loadBiens();
+      toast({
+        title: "Bien ajouté",
+        description: "Le bien a été ajouté avec succès.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredBiens = biens.filter(bien => {
+    const matchesSearch = 
+      bien.nom.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      bien.adresse.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bien.ville.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesStatus = statusFilter === 'all' || bien.statut === statusFilter;
+    const matchesType = typeFilter === 'all' || bien.type === typeFilter;
     
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  if (loading) return <div>Chargement...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <MainLayout>
@@ -76,75 +147,65 @@ const Properties = () => {
               <p className="text-muted-foreground">Gérez votre portefeuille immobilier</p>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button asChild>
-                <Link to="/properties/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Ajouter un bien
-                </Link>
+              <Button onClick={() => setShowAddForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un bien
               </Button>
             </div>
           </div>
 
           {/* Search and filters */}
-          <div className="mb-8 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
                 <Input
                   placeholder="Rechercher un bien..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10"
+                  className="w-full"
                 />
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className="sm:w-auto w-full justify-center"
+                className="w-full md:w-auto"
               >
                 <Filter className="mr-2 h-4 w-4" />
                 Filtres
-                <SlidersHorizontal className="ml-2 h-4 w-4" />
               </Button>
             </div>
 
             {showFilters && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 bg-muted/10 p-4 rounded-lg animate-slide-in-up">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Statut</label>
-                  <Select 
-                    value={statusFilter} 
-                    onValueChange={setStatusFilter}
-                  >
-                    <SelectTrigger className="w-full">
+                  <label className="text-sm font-medium">Statut</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Filtrer par statut" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les statuts</SelectItem>
-                      {Object.values(PropertyStatus).map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="vacant">Vacant</SelectItem>
+                      <SelectItem value="occupé">Occupé</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Type de bien</label>
-                  <Select 
-                    value={typeFilter} 
-                    onValueChange={setTypeFilter}
-                  >
-                    <SelectTrigger className="w-full">
+                  <label className="text-sm font-medium">Type</label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Filtrer par type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les types</SelectItem>
-                      {Object.values(PropertyType).map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="Appartement">Appartement</SelectItem>
+                      <SelectItem value="Maison">Maison</SelectItem>
+                      <SelectItem value="Studio">Studio</SelectItem>
+                      <SelectItem value="Loft">Loft</SelectItem>
+                      <SelectItem value="Duplex">Duplex</SelectItem>
+                      <SelectItem value="Triplex">Triplex</SelectItem>
+                      <SelectItem value="Villa">Villa</SelectItem>
+                      <SelectItem value="Local commercial">Local commercial</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -152,72 +213,77 @@ const Properties = () => {
             )}
           </div>
 
-          {/* Properties grid */}
-          {filteredProperties.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProperties.map((property) => (
-                <div key={property.id} className="relative group">
-                  <PropertyCard property={property} />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                    onClick={() => handleDeleteProperty(property)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 border border-dashed rounded-lg">
-              <Building className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-medium">Aucun bien trouvé</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ajoutez votre premier bien ou modifiez vos filtres.
-              </p>
-              <Button asChild className="mt-4">
-                <Link to="/properties/new">
+          {/* Liste des biens */}
+          <div className="space-y-6">
+            {filteredBiens.length > 0 ? (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredBiens.map((bien) => (
+                  <div key={bien.id} className="relative group">
+                    <PropertyCard property={bien} />
+                    {bien.statut === 'vacant' && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setBienToDelete(bien)}
+                      >
+                        Supprimer
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 border border-dashed rounded-lg">
+                <Building className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <h3 className="mt-4 text-lg font-medium">Aucun bien trouvé</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ajoutez votre premier bien ou modifiez vos filtres.
+                </p>
+                <Button onClick={() => setShowAddForm(true)} className="mt-4">
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter un bien
-                </Link>
-              </Button>
-            </div>
-          )}
-
-          {/* Free version limit reminder */}
-          {mockProperties.length >= 3 && (
-            <div className="mt-8 p-4 bg-muted/20 rounded-lg border border-dashed">
-              <p className="text-sm text-muted-foreground text-center">
-                Vous utilisez la version gratuite, limitée à 3 biens. 
-                <Button variant="link" className="p-0 h-auto text-sm font-medium">
-                  Passer à la version premium
                 </Button>
-              </p>
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
 
-        {/* Delete confirmation dialog */}
-        <AlertDialog>
-          <AlertDialogTrigger className="hidden">Supprimer</AlertDialogTrigger>
-          {propertyToDelete && (
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce bien ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Vous êtes sur le point de supprimer "{propertyToDelete.name}". Cette action est irréversible et supprimera toutes les données associées à ce bien.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPropertyToDelete(null)}>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          {/* Dialog de confirmation de suppression */}
+          <Dialog open={!!bienToDelete} onOpenChange={() => setBienToDelete(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmer la suppression</DialogTitle>
+                <DialogDescription>
+                  Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBienToDelete(null)}>
+                  Annuler
+                </Button>
+                <Button variant="destructive" onClick={handleDelete}>
                   Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          )}
-        </AlertDialog>
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Formulaire d'ajout de bien */}
+          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Ajouter un nouveau bien</DialogTitle>
+                <DialogDescription>
+                  Complétez le formulaire pour ajouter un nouveau bien à votre portefeuille
+                </DialogDescription>
+              </DialogHeader>
+              <PropertyForm 
+                onSubmit={handleAddBien}
+                onCancel={() => setShowAddForm(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </PageTransition>
     </MainLayout>
   );

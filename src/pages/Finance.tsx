@@ -1,7 +1,5 @@
-
 import React, { useState, useRef } from 'react';
 import { CreditCard, DollarSign, Filter, ArrowUpRight, ArrowDownRight, Calendar, PlusCircle, Search, LineChart } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +17,7 @@ import { Payment, PaymentStatus, PaymentType } from '@/utils/types';
 import { motion } from 'framer-motion';
 import { Line, LineChart as RechartsLineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import RevenueBreakdown from '@/components/finance/RevenueBreakdown';
+import MainLayout from '@/components/layout/MainLayout';
 
 const Finance = () => {
   const [payments] = useState(mockPayments);
@@ -123,10 +122,9 @@ const Finance = () => {
   };
 
   return (
-    <>
-      <Header />
+    <MainLayout>
       <PageTransition>
-        <main className="page-container pb-16">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
               <h1 className="page-title">Finances</h1>
@@ -369,9 +367,9 @@ const Finance = () => {
               </Tabs>
             </div>
           </div>
-        </main>
+        </div>
       </PageTransition>
-    </>
+    </MainLayout>
   );
 };
 

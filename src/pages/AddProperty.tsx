@@ -1,29 +1,54 @@
-
 import React from 'react';
 import PageTransition from '@/components/ui/PageTransition';
 import PropertyForm from '@/components/PropertyForm';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/utils/types';
-import { v4 as uuidv4 } from 'uuid';
 import MainLayout from '@/components/layout/MainLayout';
+import { getCurrentUser, ajouterBien } from '@/services/firebaseServices';
+import { Bien } from '@/types/types';
 
 const AddProperty = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (property: Partial<Property>) => {
-    // Dans une application réelle, cette fonction enverrait les données à une API
-    // Ici, nous simulons simplement le succès et redirigeons vers la liste des biens
-    console.log('Nouveau bien ajouté:', property);
-    
-    toast({
-      title: "Bien ajouté avec succès",
-      description: `${property.name} a été ajouté à votre portefeuille.`,
-    });
+  const handleSubmit = async (property: Partial<Property>) => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) throw new Error('Utilisateur non connecté');
 
-    // Redirection vers la page des biens
-    navigate('/properties');
+      const newBien: Omit<Bien, 'id'> = {
+        nom: property.name || '',
+        type: property.type || '',
+        adresse: property.address || '',
+        ville: property.city || '',
+        code_postal: property.postalCode || '',
+        pays: property.country || 'France',
+        nombre_pieces: property.rooms || 0,
+        surface: property.area || 0,
+        loyer_mensuel: property.rent || 0,
+        statut: 'vacant',
+        description: property.description || '',
+        imageURL: property.imageUrl || '',
+        proprietaireID: user.uid,
+        locataireId: null
+      };
+
+      await ajouterBien(newBien);
+      
+      toast({
+        title: "Bien ajouté avec succès",
+        description: `${property.name} a été ajouté à votre portefeuille.`,
+      });
+
+      navigate('/properties');
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {

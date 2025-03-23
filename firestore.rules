@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Fonction pour vérifier si l'utilisateur est propriétaire
+    function isProprietaire(proprietaireId) {
+      return isAuthenticated() && request.auth.uid == proprietaireId;
+    }
+
+    // Fonction pour vérifier si l'utilisateur est locataire
+    function isLocataire(locataireId) {
+      return isAuthenticated() && request.auth.uid == locataireId;
+    }
+
+    // Règles pour la collection PROPRIETAIRES
+    match /PROPRIETAIRES/{proprietaireId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == proprietaireId;
+      allow update: if isProprietaire(proprietaireId);
+      allow delete: if isProprietaire(proprietaireId);
+    }
+
+    // Règles pour la collection LOCATAIRES
+    match /LOCATAIRES/{locataireId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == locataireId;
+      allow update: if isLocataire(locataireId);
+      allow delete: if isLocataire(locataireId);
+    }
+
+    // Règles pour la collection BIENS
+    match /biens/{bienId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        request.resource.data.proprietaireID == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.proprietaireID == request.auth.uid ||
+        (resource.data.statut == 'vacant' && 
+         request.resource.data.statut == 'occupé' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'locataireId']))
+      );
+      allow delete: if isAuthenticated() && 
+        resource.data.proprietaireID == request.auth.uid &&
+        resource.data.statut == 'vacant';
+    }
+
+    // Règles pour la collection DOCUMENTS
+    match /DOCUMENTS/{documentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Règles pour la collection PAIEMENTS
+    match /PAIEMENTS/{paiementId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Règles pour la collection MAINTENANCE
+    match /MAINTENANCE/{maintenanceId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+  }
+} 

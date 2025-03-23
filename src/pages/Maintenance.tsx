@@ -1,7 +1,5 @@
-
 import React, { useState } from 'react';
 import { Wrench, Filter, Search, Clock, PlusCircle, AlertTriangle, CheckCircle, MoreVertical, Calendar } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import PageTransition from '@/components/ui/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +16,7 @@ import {
 } from '@/utils/mockData';
 import { MaintenancePriority, MaintenanceStatus } from '@/utils/types';
 import { motion } from 'framer-motion';
+import MainLayout from '@/components/layout/MainLayout';
 
 const Maintenance = () => {
   const [maintenanceRequests] = useState(mockMaintenanceRequests);
@@ -101,10 +100,9 @@ const Maintenance = () => {
   };
 
   return (
-    <>
-      <Header />
+    <MainLayout>
       <PageTransition>
-        <main className="page-container pb-16">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
               <h1 className="page-title">Maintenance</h1>
@@ -384,9 +382,9 @@ const Maintenance = () => {
               </DialogContent>
             </Dialog>
           )}
-        </main>
+        </div>
       </PageTransition>
-    </>
+    </MainLayout>
   );
 };
 
