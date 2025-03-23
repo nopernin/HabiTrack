@@ -158,19 +158,20 @@ const EventCalendar: React.FC = () => {
   };
 
   return (
-    <Card>
+    <Card className="w-full h-full overflow-hidden">
       <CardHeader>
         <CardTitle className="text-xl">Calendrier</CardTitle>
       </CardHeader>
-      <CardContent>
-        <Calendar
-          mode="single"
-          selected={date}
+      <CardContent className="flex-grow flex justify-center items-center">
+        <div className="w-full h-full flex justify-center items-center">
+          <Calendar
+            mode="single"
+            selected={date}
           onSelect={(newDate) => {
             setDate(newDate);
             if (newDate) handleDayClick(newDate);
           }}
-          className="rounded-md border"
+          className="w-full h-full flex-grow rounded-md border"
           locale={fr}
           modifiers={{
             event: (date) => events.some(event => 
@@ -230,6 +231,7 @@ const EventCalendar: React.FC = () => {
             </ScrollArea>
           </DialogContent>
         </Dialog>
+        </div>
       </CardContent>
     </Card>
   );

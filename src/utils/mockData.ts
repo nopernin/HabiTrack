@@ -225,7 +225,7 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     actualCost: 95,
     assignedTo: 'Plombier Martin',
     completionDate: new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 18),
-    images: ['https://images.unsplash.com/photo-1585704032915-c3400305e979?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2835&q=80']
+    images: ['https://www.democratikdesign.com/media/wysiwyg/Robinet-goutte.jpg']
   },
   {
     id: '2',
@@ -248,7 +248,7 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     date: new Date(),
     status: MaintenanceStatus.PENDING,
     priority: MaintenancePriority.HIGH,
-    images: ['https://images.unsplash.com/photo-1643241053420-42afe97c3034?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80']
+    images: ['https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXtHHzmdtFb7L_zg_I-Ze_pTtuqe7asoSGng&s']
   }
 ];
 
