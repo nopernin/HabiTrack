@@ -78,13 +78,11 @@ const SignUp = () => {
       }
 
       // Pour les propriétaires, créer directement le document
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
+await setDoc(doc(db, role === 'proprietaire' ? 'proprietaires' : 'locataires', user.uid), {
+        id: user.uid,
         email,
         nom: name,
         telephone: phone,
-        role,
-        createdAt: new Date().toISOString()
       });
       console.log('Document utilisateur créé');
 

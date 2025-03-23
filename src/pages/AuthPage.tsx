@@ -21,8 +21,12 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userco = auth.currentUser;
+console.log("Utilisateur après connexion :", userco);
+      console.log("Utilisateur connecté :", userCredential.user);
     } catch (err: any) {
+      console.error("Erreur de connexion :", err.code, err.message);
       setError(err.message);
     } finally {
       setLoading(false);
